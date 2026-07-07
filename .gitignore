@@ -1,0 +1,22 @@
+# 大体积 / 可再生成
+outputs/
+IsaacLab/logs/
+IsaacLab/**/videos/
+**/*.pt
+**/*.mp4
+**/__pycache__/
+**/.pytest_cache/
+*.pyc
+
+# Isaac Sim / Omniverse
+IsaacLab/_isaac_sim/
+IsaacLab/_build/
+IsaacLab/_repo/
+
+# 可选：本地 USD 资产（IsaacLab 默认也不提交 *.usd）
+assets/robots/franka/
+assets/props/
+
+# IDE
+.cursor/
+.vscode/

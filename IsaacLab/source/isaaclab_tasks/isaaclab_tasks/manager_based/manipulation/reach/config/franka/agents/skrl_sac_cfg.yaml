@@ -1,0 +1,145 @@
+# Copyright (c) 2022-2026, The Isaac Lab Project Developers.
+# All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# SKRL SAC configuration for Isaac-Reach-Franka (shared by v0 and IK-Rel-v0)
+# Uses off-policy SAC with twin Q-networks and automatic entropy tuning.
+# JointPosition (v0):  Obs dim: 32 | Action dim: 7
+# IK-Rel (IK-Rel-v0):  Obs dim: 31 | Action dim: 6  (SKRL auto-infers)
+#
+# Round 28 fixes (see docs/progress_log.md):
+#   - random_timesteps: 0    (was 1000; unbounded action space causes Uniform(-inf,inf) -> NaN)
+#   - grad_norm_clip: 1.0    (was 0; prevents gradient explosion)
+#   - batch_size: 512        (was 4096; better gradient signal for SAC)
+#   - network layers: [256, 256] (was [256,256,256]; matches task complexity)
+#
+# Round 30 fixes (alpha collapse + policy saturation):
+#   - target_entropy: -2     (was null/-7; prevents alpha from collapsing to 0)
+#   - initial_entropy_value: 0.1 (was 0.01; slower alpha decay)
+#   - max_log_std: 0.0       (was 2.0; sigma_max 1.0 instead of 7.4)
+#   - learning_starts: 1000  (was 256; more diverse buffer before updates)
+#
+# Round 31 fixes (tanh squashing):
+#   - clip_actions: False     (tanh naturally bounds to (-1,1))
+#   - clip_mean_actions: False (tanh(mean) is naturally bounded)
+#   - train.py applies tanh squashing + Jacobian-corrected log_prob via
+#     scripts/sac_tanh_squashing.py, fixing alpha collapse at its root cause
+#
+# Round 32 fixes (exploration + longer training):
+#   - target_entropy: 0       (was -2; maximize exploration for 7-dim action space)
+#   - initial_entropy_value: 1.0 (was 0.1; much stronger initial exploration)
+#   - memory_size: 50000      (was 10000; larger replay buffer for diversity)
+#   - checkpoint_interval: 10000 (was 4000; 200k/10000=20 checkpoints)
+#
+# Round 33 fixes (capacity + exploration floor + LR schedule):
+#   - network layers: [512, 256, 128] (was [256, 256]; more capacity)
+#   - batch_size: 1024         (was 512; more stable gradients)
+#   - learning_rate_scheduler: CosineAnnealingLR (T_max=800k, eta_min=1e-5) [set in train.py]
+#   - checkpoint_interval: 40000 (was 10000; 800k/40k=20 checkpoints)
+#   - alpha_min clamp: 0.01   (via sac_tanh_squashing.py; prevents alpha collapse)
+#   - fine_grained reward: weight 0.5, std 0.05 (was 0.1/0.1; in reach_env_cfg.py)
+
+seed: 42
+
+
+# Models are instantiated using skrl's model instantiator utility
+# https://skrl.readthedocs.io/en/latest/api/utils/model_instantiators.html
+models:
+  separate: True
+
+  policy:
+    class: GaussianMixin
+    clip_actions: False
+    clip_mean_actions: False
+    clip_log_std: True
+    min_log_std: -20.0
+    max_log_std: 0.0
+    initial_log_std: 0.0
+    network:
+      - name: net
+        input: OBSERVATIONS
+        layers: [512, 256, 128]
+        activations: elu
+    output: ACTIONS
+
+  critic_1:
+    class: DeterministicMixin
+    clip_actions: False
+    network:
+      - name: net
+        input: "torch.cat([observations, taken_actions], dim=-1)"
+        layers: [512, 256, 128]
+        activations: elu
+    output: ONE
+
+  critic_2:
+    class: DeterministicMixin
+    clip_actions: False
+    network:
+      - name: net
+        input: "torch.cat([observations, taken_actions], dim=-1)"
+        layers: [512, 256, 128]
+        activations: elu
+    output: ONE
+
+  target_critic_1:
+    class: DeterministicMixin
+    clip_actions: False
+    network:
+      - name: net
+        input: "torch.cat([observations, taken_actions], dim=-1)"
+        layers: [512, 256, 128]
+        activations: elu
+    output: ONE
+
+  target_critic_2:
+    class: DeterministicMixin
+    clip_actions: False
+    network:
+      - name: net
+        input: "torch.cat([observations, taken_actions], dim=-1)"
+        layers: [512, 256, 128]
+        activations: elu
+    output: ONE
+
+
+# Replay memory (off-policy)
+# memory_size: slots per parallel env; total = memory_size * num_envs
+memory:
+  class: RandomMemory
+  memory_size: 50000
+
+
+# SAC agent configuration
+# https://skrl.readthedocs.io/en/latest/api/agents/sac.html
+agent:
+  class: SAC
+  rollouts: 8
+  gradient_steps: 1
+  batch_size: 1024
+  discount_factor: 0.99
+  polyak: 0.005
+  learning_rate: 5.0e-4
+  learning_rate_scheduler: null
+  observation_preprocessor: RunningStandardScaler
+  observation_preprocessor_kwargs: null
+  random_timesteps: 0
+  learning_starts: 1000
+  grad_norm_clip: 1.0
+  learn_entropy: True
+  initial_entropy_value: 1.0
+  target_entropy: 0
+  rewards_shaper_scale: 1.0
+  experiment:
+    directory: "reach_franka_sac"
+    experiment_name: ""
+    write_interval: auto
+    checkpoint_interval: 20000
+
+
+# Sequential trainer
+# https://skrl.readthedocs.io/en/latest/api/trainers/sequential.html
+trainer:
+  class: SequentialTrainer
+  timesteps: 24000
+  environment_info: log
