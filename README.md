@@ -3,8 +3,8 @@
 > 基于 NVIDIA Isaac Lab 与 Franka 机械臂的视觉伺服控制器实验项目。项目将视觉伺服任务建模为连续控制强化学习问题，使用 Soft Actor-Critic（SAC）学习从视觉/状态误差到机械臂控制动作的闭环策略，并通过训练曲线、奖励消融、鲁棒性测试和动作空间对比验证控制效果。
 
 <p align="center">
-  <img src="assets/sac_round37_side_demo.gif" width="48%" alt="SAC R37 side view demo"/>
-  <img src="assets/tracking_demo_r37.gif" width="48%" alt="Tracking demo"/>
+  <img src="assets/assets/sac_round37_side_demo.gif" width="48%" alt="SAC R37 side view demo"/>
+  <img src="assets/assets/tracking_demo_r37.gif" width="48%" alt="Tracking demo"/>
 </p>
 
 ## Highlights
@@ -260,9 +260,9 @@ OMNI_KIT_ACCEPT_EULA=YES conda run -n env_isaaclab python \
 
 The final policy achieves stable target-reaching behavior in the Isaac Lab Franka environment. The sparse `reach_success` term grows from nearly 0 at the beginning of training to 73.7%, indicating that the policy spends most of the later episode near the target region.
 
-![R37 training detail](assets/exp1_r37_training_detail.png)
+![R37 training detail](assets/assets/exp1_r37_training_detail.png)
 
-![Reach success trajectory](assets/exp1_reach_success_trajectory.png)
+![Reach success trajectory](assets/assets/exp1_reach_success_trajectory.png)
 
 ### Cross-round Training Evolution
 
@@ -274,7 +274,7 @@ The final policy achieves stable target-reaching behavior in the Isaac Lab Frank
 | R36 | IK-Rel | +3.31 | ~8 cm | switch to IK-Rel |
 | R37 | IK-Rel | **+15.66** | **~3.5 cm** | success bonus + 12s resampling + orientation weight |
 
-![Cross-round evaluation](assets/exp1_cross_round_eval_bar.png)
+![Cross-round evaluation](assets/assets/exp1_cross_round_eval_bar.png)
 
 ### Reward Ablation
 
@@ -286,19 +286,19 @@ The final policy achieves stable target-reaching behavior in the Isaac Lab Frank
 | A3 | Remove action penalties | -0.76 |
 | A4 | Position tracking only | -2.13 |
 
-![Reward ablation](assets/exp2_ablation_eval_bar.png)
+![Reward ablation](assets/assets/exp2_ablation_eval_bar.png)
 
 ### Robustness Evaluation
 
 The trained policy is robust to moderate observation noise, initial pose distribution expansion, and action execution error. The main weakness is out-of-distribution workspace extrapolation.
 
-![Robustness grid](assets/exp3_robustness_grid.png)
+![Robustness grid](assets/assets/exp3_robustness_grid.png)
 
 ### Action-space Comparison
 
 IK-Rel significantly outperforms the joint-space baseline. In the action-space comparison, JointPace reaches about 19 cm average position error, while IK-Rel reaches about 3.5 cm.
 
-![Action-space evaluation](assets/exp4_action_space_eval_comparison.png)
+![Action-space evaluation](assets/assets/exp4_action_space_eval_comparison.png)
 
 ## Demo Videos
 
